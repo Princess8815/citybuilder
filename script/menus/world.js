@@ -1,7 +1,8 @@
 
 
-export function proceduralWorldGeneration(level, coords) {
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+export function proceduralWorldGeneration(level, coords, existingWorld = null) {
+  // Always mutate a single in-memory object so it can be saved once at the end
+  const world = existingWorld ?? loadWorld();
 
   // Ensure root path
   const scKey = `superCluster${coords.superCluster ?? 0}`;
@@ -43,7 +44,7 @@ const s          = ensure(states, sKey, { coords });
     case "state":     generateCities(s, coords); break;
   }
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -51,6 +52,13 @@ const s          = ensure(states, sKey, { coords });
 function ensure(obj, key, defaultValue = {}) {
   if (!obj[key]) obj[key] = defaultValue;
   return obj[key];
+}
+
+function loadWorld() {
+  // Load and normalize the world into memory before any generation happens.
+  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  ensureInitialSuperCluster(world);
+  return world;
 }
 
 const DISTANCE_WEIGHTS = {
@@ -579,6 +587,7 @@ function generateCities(world, state, coords) {
   state.cities["city0"] = {
     name: "State Capital",
     isStateCapital: true,
+    // Future city metadata (population, economy, lore, etc.) can be added here.
     coords: { ...coords, city: 0 }
   };
 
@@ -587,6 +596,7 @@ function generateCities(world, state, coords) {
     state.cities[`city${i}`] = {
       name: `City ${i}`,
       isStateCapital: false,
+      // Future city metadata (population, economy, lore, etc.) can be added here.
       coords: { ...coords, city: i }
     };
   }
@@ -600,7 +610,7 @@ function addSuperCluster() {
   const name = prompt("Name the new Super Cluster:");
   if (!name) return;
 
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  const world = loadWorld();
 
   const indexes = Object.keys(world)
     .filter(k => k.startsWith("superCluster"))
@@ -615,7 +625,7 @@ function addSuperCluster() {
     clustersGenerated: false
   };
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
   showSuperClusters(world); // re-render THIS view
 }
 
@@ -629,13 +639,13 @@ function ensureInitialSuperCluster(world) {
       clustersGenerated: false
     };
 
-    localStorage.setItem("world", JSON.stringify(world));
+    saveWorld(world);
   }
 }
 
 export function navigateTo(level, coords = {}, direction = "render") {
   // 1️⃣ Load world ONCE
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  const world = loadWorld();
 
   const map = document.getElementById("map");
   map.innerHTML = "";
@@ -693,7 +703,8 @@ export function navigateTo(level, coords = {}, direction = "render") {
 
   // 3️⃣ Generate ONLY if missing
   if (!pathExists(level, coords)) {
-    proceduralWorldGeneration(level, coords);
+    // Pass the loaded world so the new structure lives on the same object we render
+    proceduralWorldGeneration(level, coords, world);
   }
 
   // 4️⃣ Render from THE SAME OBJECT
@@ -773,7 +784,7 @@ export function navigateTo(level, coords = {}, direction = "render") {
   }
 
   // 5️⃣ SAVE EXACTLY ONCE
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -820,6 +831,7 @@ export function initWorld() {
   if (generated) return;
 
   // build the whole chain down to state0 so navigateTo("state") has parents
+  const world = loadWorld();
   proceduralWorldGeneration("state", {
     superCluster: 0,
     cluster: 0,
@@ -829,18 +841,12 @@ export function initWorld() {
     nation: 0,
     state: 0,
     city: 0
-  });
+  }, world);
 
   localStorage.setItem("worldGenerated", "true");
 }
 
 function saveWorld(world) {
+  // Centralized save so every mutation is persisted consistently.
   localStorage.setItem("world", JSON.stringify(world));
 }
-
-
-
-
-
-
-
