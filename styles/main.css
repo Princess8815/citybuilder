@@ -1,0 +1,35 @@
+body {
+  background-color: #121212;
+  color: #eaeaea;
+  font-family: monospace;
+}
+
+.resource-bar {
+  background-color: #1e1e1e;
+  border-bottom: 2px solid #333;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+.game-container {
+  max-width: 1000px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.content-box {
+  background-color: #1b1b1b;
+  border: 1px solid #333;
+  padding: 15px;
+  min-height: 320px;
+}
+
+.section-title {
+  margin-bottom: 12px;
+}
+
+.btn-game {
+  width: 100%;
+  margin-bottom: 8px;
+  text-align: left;
+}
