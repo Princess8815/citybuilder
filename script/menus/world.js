@@ -1,7 +1,9 @@
-
+function loadWorld() {
+  return JSON.parse(localStorage.getItem("world")) ?? {};
+}
 
 export function proceduralWorldGeneration(level, coords) {
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  const world = loadWorld();
 
   // Ensure root path
   const scKey = `superCluster${coords.superCluster ?? 0}`;
@@ -43,7 +45,7 @@ const s          = ensure(states, sKey, { coords });
     case "state":     generateCities(s, coords); break;
   }
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -579,7 +581,9 @@ function generateCities(world, state, coords) {
   state.cities["city0"] = {
     name: "State Capital",
     isStateCapital: true,
-    coords: { ...coords, city: 0 }
+    coords: { ...coords, city: 0 },
+    // TODO: Add richer city details (population, traits, notes) here.
+    details: {}
   };
 
   // Other cities
@@ -587,7 +591,8 @@ function generateCities(world, state, coords) {
     state.cities[`city${i}`] = {
       name: `City ${i}`,
       isStateCapital: false,
-      coords: { ...coords, city: i }
+      coords: { ...coords, city: i },
+      details: {}
     };
   }
 
@@ -600,7 +605,7 @@ function addSuperCluster() {
   const name = prompt("Name the new Super Cluster:");
   if (!name) return;
 
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  const world = loadWorld();
 
   const indexes = Object.keys(world)
     .filter(k => k.startsWith("superCluster"))
@@ -615,7 +620,7 @@ function addSuperCluster() {
     clustersGenerated: false
   };
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
   showSuperClusters(world); // re-render THIS view
 }
 
@@ -629,13 +634,14 @@ function ensureInitialSuperCluster(world) {
       clustersGenerated: false
     };
 
-    localStorage.setItem("world", JSON.stringify(world));
+    saveWorld(world);
   }
 }
 
 export function navigateTo(level, coords = {}, direction = "render") {
   // 1️⃣ Load world ONCE
-  const world = JSON.parse(localStorage.getItem("world")) ?? {};
+  let world = loadWorld();
+  let generatedMissingPath = false;
 
   const map = document.getElementById("map");
   map.innerHTML = "";
@@ -693,7 +699,14 @@ export function navigateTo(level, coords = {}, direction = "render") {
 
   // 3️⃣ Generate ONLY if missing
   if (!pathExists(level, coords)) {
+    generatedMissingPath = true;
     proceduralWorldGeneration(level, coords);
+  }
+
+  // If we just generated missing data, reload the freshest copy so
+  // we don't accidentally overwrite the new structure when saving.
+  if (generatedMissingPath) {
+    world = loadWorld();
   }
 
   // 4️⃣ Render from THE SAME OBJECT
@@ -773,7 +786,7 @@ export function navigateTo(level, coords = {}, direction = "render") {
   }
 
   // 5️⃣ SAVE EXACTLY ONCE
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -837,10 +850,6 @@ export function initWorld() {
 function saveWorld(world) {
   localStorage.setItem("world", JSON.stringify(world));
 }
-
-
-
-
 
 
 
