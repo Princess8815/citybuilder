@@ -2,57 +2,128 @@ function loadWorld() {
   return JSON.parse(localStorage.getItem("world")) ?? {};
 }
 
-export function proceduralWorldGeneration(level, coords) {
-  const world = loadWorld();
-
-  // Ensure root path
-  const scKey = `superCluster${coords.superCluster ?? 0}`;
-  const clKey = `cluster${coords.cluster ?? 0}`;
-  const gKey  = `galaxy${coords.galaxy ?? 0}`;
-  const pKey  = `planet${coords.planet ?? 0}`;
-  const cKey  = `continent${coords.continent ?? 0}`;
-  const nKey  = `nation${coords.nation ?? 0}`;
-  const sKey  = `state${coords.state ?? 0}`;
-
-const sc = ensure(world, scKey, { coords });
-
-const clusters   = ensure(sc, "clusters", {});
-const cl         = ensure(clusters, clKey, { coords });
-
-const galaxies   = ensure(cl, "galaxies", {});
-const g          = ensure(galaxies, gKey, { coords });
-
-const planets    = ensure(g, "planets", {});
-const p          = ensure(planets, pKey, { coords });
-
-const continents = ensure(p, "continents", {});
-const c          = ensure(continents, cKey, { coords });
-
-const nations    = ensure(c, "nations", {});
-const n          = ensure(nations, nKey, { coords });
-
-const states     = ensure(n, "states", {});
-const s          = ensure(states, sKey, { coords });
-
-
-  switch (level) {
-    case "superCluster": generateClusters(sc, coords); break;
-    case "cluster":   generateGalaxies(cl, coords); break;
-    case "galaxy":    generatePlanets(g, coords); break;
-    case "planet":    generateContinents(p, coords); break;
-    case "continent": generateNations(c, coords); break;
-    case "nation":    generateStates(n, coords); break;
-    case "state":     generateCities(s, coords); break;
-  }
-
-  saveWorld(world);
+function saveWorld(world) {
+  localStorage.setItem("world", JSON.stringify(world));
 }
 
+const NODE_NAMES = {
+  superCluster: (id) => `Super Cluster ${id}`,
+  cluster:      (id) => `Cluster ${id}`,
+  galaxy:       (id) => `Galaxy ${id}`,
+  planet:       (id) => `Planet ${id}`,
+  continent:    (id) => `Continent ${id}`,
+  nation:       (id) => `Nation ${id}`,
+  state:        (id) => `State ${id}`,
+  city:         (id) => `City ${id}`
+};
 
+const COLLECTION_KEYS = {
+  superCluster: "clusters",
+  cluster:      "galaxies",
+  galaxy:       "planets",
+  planet:       "continents",
+  continent:    "nations",
+  nation:       "states",
+  state:        "cities"
+};
+
+const LEVEL_KEY_PREFIX = {
+  superCluster: "superCluster",
+  cluster:      "cluster",
+  galaxy:       "galaxy",
+  planet:       "planet",
+  continent:    "continent",
+  nation:       "nation",
+  state:        "state",
+  city:         "city"
+};
 
 function ensure(obj, key, defaultValue = {}) {
   if (!obj[key]) obj[key] = defaultValue;
   return obj[key];
+}
+
+function ensureBranch(world, coords) {
+  const scKey = `${LEVEL_KEY_PREFIX.superCluster}${coords.superCluster ?? 0}`;
+  const clKey = `${LEVEL_KEY_PREFIX.cluster}${coords.cluster ?? 0}`;
+  const gKey  = `${LEVEL_KEY_PREFIX.galaxy}${coords.galaxy ?? 0}`;
+  const pKey  = `${LEVEL_KEY_PREFIX.planet}${coords.planet ?? 0}`;
+  const cKey  = `${LEVEL_KEY_PREFIX.continent}${coords.continent ?? 0}`;
+  const nKey  = `${LEVEL_KEY_PREFIX.nation}${coords.nation ?? 0}`;
+  const sKey  = `${LEVEL_KEY_PREFIX.state}${coords.state ?? 0}`;
+
+  const sc = ensure(world, scKey, {
+    name: NODE_NAMES.superCluster(coords.superCluster ?? 0),
+    coords: { superCluster: coords.superCluster ?? 0 },
+    clusters: {},
+    clustersGenerated: false
+  });
+
+  const clusters   = ensure(sc, COLLECTION_KEYS.superCluster, {});
+  const cl         = ensure(clusters, clKey, {
+    name: NODE_NAMES.cluster(coords.cluster ?? 0),
+    coords: { ...sc.coords, cluster: coords.cluster ?? 0 },
+    galaxies: {},
+    galaxiesGenerated: false
+  });
+
+  const galaxies   = ensure(cl, COLLECTION_KEYS.cluster, {});
+  const g          = ensure(galaxies, gKey, {
+    name: NODE_NAMES.galaxy(coords.galaxy ?? 0),
+    coords: { ...cl.coords, galaxy: coords.galaxy ?? 0 },
+    planets: {},
+    planetsGenerated: false
+  });
+
+  const planets    = ensure(g, COLLECTION_KEYS.galaxy, {});
+  const p          = ensure(planets, pKey, {
+    name: NODE_NAMES.planet(coords.planet ?? 0),
+    coords: { ...g.coords, planet: coords.planet ?? 0 },
+    continents: {},
+    continentsGenerated: false
+  });
+
+  const continents = ensure(p, COLLECTION_KEYS.planet, {});
+  const c          = ensure(continents, cKey, {
+    name: NODE_NAMES.continent(coords.continent ?? 0),
+    coords: { ...p.coords, continent: coords.continent ?? 0 },
+    nations: {},
+    nationsGenerated: false
+  });
+
+  const nations    = ensure(c, COLLECTION_KEYS.continent, {});
+  const n          = ensure(nations, nKey, {
+    name: NODE_NAMES.nation(coords.nation ?? 0),
+    coords: { ...c.coords, nation: coords.nation ?? 0 },
+    states: {},
+    statesGenerated: false
+  });
+
+  const states     = ensure(n, COLLECTION_KEYS.nation, {});
+  const s          = ensure(states, sKey, {
+    name: NODE_NAMES.state(coords.state ?? 0),
+    coords: { ...n.coords, state: coords.state ?? 0 },
+    cities: {},
+    citiesGenerated: false
+  });
+
+  return { world, sc, cl, g, p, c, n, s };
+}
+
+export function proceduralWorldGeneration(level, coords) {
+  const { world, sc, cl, g, p, c, n, s } = ensureBranch(loadWorld(), coords);
+
+  switch (level) {
+    case "superCluster": generateClusters(sc, coords); break;
+    case "cluster":      generateGalaxies(cl, coords); break;
+    case "galaxy":       generatePlanets(g, coords); break;
+    case "planet":       generateContinents(p, coords); break;
+    case "continent":    generateNations(c, coords); break;
+    case "nation":       generateStates(n, coords); break;
+    case "state":        generateCities(s, coords); break;
+  }
+
+  saveWorld(world);
 }
 
 const DISTANCE_WEIGHTS = {
@@ -625,167 +696,48 @@ function addSuperCluster() {
 }
 
 
-function ensureInitialSuperCluster(world) {
-  if (!Object.keys(world).some(k => k.startsWith("superCluster"))) {
-    world.superCluster0 = {
-      name: "Home Super Cluster",
-      coords: { superCluster: 0 },
-      clusters: {},
-      clustersGenerated: false
-    };
-
-    saveWorld(world);
-  }
-}
-
 export function navigateTo(level, coords = {}, direction = "render") {
-  // 1️⃣ Load world ONCE
-  let world = loadWorld();
-  let generatedMissingPath = false;
+  const world = loadWorld();
+  const branch = ensureBranch(world, coords);
 
   const map = document.getElementById("map");
   map.innerHTML = "";
 
-  // 2️⃣ Check if path exists
-  function pathExists(level, coords) {
-    try {
-      switch (level) {
-        case "superCluster":
-          return !!world[`superCluster${coords.superCluster}`];
-
-        case "cluster":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`];
-
-        case "galaxy":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`]
-            ?.galaxies?.[`galaxy${coords.galaxy}`];
-
-        case "planet":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`]
-            ?.galaxies?.[`galaxy${coords.galaxy}`]
-            ?.planets?.[`planet${coords.planet}`];
-
-        case "continent":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`]
-            ?.galaxies?.[`galaxy${coords.galaxy}`]
-            ?.planets?.[`planet${coords.planet}`]
-            ?.continents?.[`continent${coords.continent}`];
-
-        case "nation":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`]
-            ?.galaxies?.[`galaxy${coords.galaxy}`]
-            ?.planets?.[`planet${coords.planet}`]
-            ?.continents?.[`continent${coords.continent}`]
-            ?.nations?.[`nation${coords.nation}`];
-
-        case "state":
-          return !!world[`superCluster${coords.superCluster}`]
-            ?.clusters?.[`cluster${coords.cluster}`]
-            ?.galaxies?.[`galaxy${coords.galaxy}`]
-            ?.planets?.[`planet${coords.planet}`]
-            ?.continents?.[`continent${coords.continent}`]
-            ?.nations?.[`nation${coords.nation}`]
-            ?.states?.[`state${coords.state}`];
-      }
-    } catch {
-      return false;
-    }
-  }
-
-  // 3️⃣ Generate ONLY if missing
-  if (!pathExists(level, coords)) {
-    generatedMissingPath = true;
-    proceduralWorldGeneration(level, coords);
-  }
-
-  // If we just generated missing data, reload the freshest copy so
-  // we don't accidentally overwrite the new structure when saving.
-  if (generatedMissingPath) {
-    world = loadWorld();
-  }
-
-  // 4️⃣ Render from THE SAME OBJECT
   switch (level) {
     case "world":
       showSuperClusters(world);
       break;
 
-    case "superCluster": {
-      const sc = world[`superCluster${coords.superCluster}`];
-      generateClusters(world, sc, coords);
+    case "superCluster":
+      generateClusters(world, branch.sc, coords);
       break;
-    }
 
-    case "cluster": {
-      const cluster =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`];
-      generateGalaxies(world, cluster, coords);
+    case "cluster":
+      generateGalaxies(world, branch.cl, coords);
       break;
-    }
 
-    case "galaxy": {
-      const galaxy =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`]
-          .galaxies[`galaxy${coords.galaxy}`];
-      generatePlanets(world, galaxy, coords);
+    case "galaxy":
+      generatePlanets(world, branch.g, coords);
       break;
-    }
 
-    case "planet": {
-      const planet =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`]
-          .galaxies[`galaxy${coords.galaxy}`]
-          .planets[`planet${coords.planet}`];
-      generateContinents(world, planet, coords);
+    case "planet":
+      generateContinents(world, branch.p, coords);
       break;
-    }
 
-    case "continent": {
-      const continent =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`]
-          .galaxies[`galaxy${coords.galaxy}`]
-          .planets[`planet${coords.planet}`]
-          .continents[`continent${coords.continent}`];
-      generateNations(world, continent, coords);
+    case "continent":
+      generateNations(world, branch.c, coords);
       break;
-    }
 
-    case "nation": {
-      const nation =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`]
-          .galaxies[`galaxy${coords.galaxy}`]
-          .planets[`planet${coords.planet}`]
-          .continents[`continent${coords.continent}`]
-          .nations[`nation${coords.nation}`];
-      generateStates(world, nation, coords);
+    case "nation":
+      generateStates(world, branch.n, coords);
       break;
-    }
 
-    case "state": {
-      const state =
-        world[`superCluster${coords.superCluster}`]
-          .clusters[`cluster${coords.cluster}`]
-          .galaxies[`galaxy${coords.galaxy}`]
-          .planets[`planet${coords.planet}`]
-          .continents[`continent${coords.continent}`]
-          .nations[`nation${coords.nation}`]
-          .states[`state${coords.state}`];
-      generateCities(world, state, coords);
+    case "state":
+      generateCities(world, branch.s, coords);
       break;
-    }
   }
 
-  // 5️⃣ SAVE EXACTLY ONCE
+  localStorage.setItem("currentCoords", JSON.stringify(coords));
   saveWorld(world);
 }
 
@@ -846,10 +798,3 @@ export function initWorld() {
 
   localStorage.setItem("worldGenerated", "true");
 }
-
-function saveWorld(world) {
-  localStorage.setItem("world", JSON.stringify(world));
-}
-
-
-
