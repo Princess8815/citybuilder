@@ -1,9 +1,15 @@
+let worldCache = null;
+
 function loadWorld() {
-  return JSON.parse(localStorage.getItem("world")) ?? {};
+  if (worldCache) return worldCache;
+  worldCache = JSON.parse(localStorage.getItem("world")) ?? {};
+  return worldCache;
 }
 
-function saveWorld(world) {
-  localStorage.setItem("world", JSON.stringify(world));
+function saveWorld(world = worldCache) {
+  if (!world) return;
+  worldCache = world;
+  localStorage.setItem("world", JSON.stringify(worldCache));
 }
 
 const NODE_NAMES = {
@@ -239,6 +245,7 @@ function generateClusters(world, superCluster, coords) {
     };
   }
 
+  saveWorld(world);
   // second pass to render
   generateClusters(world, superCluster, coords);
 }
@@ -305,6 +312,7 @@ function generateGalaxies(world, cluster, coords) {
     };
   }
 
+  saveWorld(world);
   // second pass to render
   generateGalaxies(world, cluster, coords);
 }
@@ -372,6 +380,7 @@ function generatePlanets(world, galaxy, coords) {
     };
   }
 
+  saveWorld(world);
   // second pass to render
   generatePlanets(world, galaxy, coords);
 }
@@ -439,6 +448,7 @@ function generateContinents(world,planet, coords) {
       coords: { ...coords, continent: i }
     };
   }
+  saveWorld(world);
   // second pass to render
   generateContinents(world, planet, coords);
 }
@@ -508,6 +518,7 @@ function generateNations(world, continent, coords) {
     };
   }
 
+  saveWorld(world);
   // second pass to render
   generateNations(world, continent, coords);
 }
@@ -579,6 +590,7 @@ function generateStates(world, nation, coords) {
   }
 
 
+  saveWorld(world);
   // second pass to render
   generateStates(world, nation, coords);
 }
@@ -668,6 +680,7 @@ function generateCities(world, state, coords) {
   }
 
 
+  saveWorld(world);
   // second pass to render
   generateCities(world, state, coords);
 }
@@ -697,7 +710,7 @@ function addSuperCluster() {
 
 
 export function navigateTo(level, coords = {}, direction = "render") {
-  const world = loadWorld();
+  const world = ensureBranch(loadWorld(), coords).world;
   const branch = ensureBranch(world, coords);
 
   const map = document.getElementById("map");
@@ -796,5 +809,6 @@ export function initWorld() {
     city: 0
   });
 
+  saveWorld();
   localStorage.setItem("worldGenerated", "true");
 }
