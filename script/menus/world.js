@@ -3,6 +3,7 @@
 export function proceduralWorldGeneration(level, coords) {
   const world = JSON.parse(localStorage.getItem("world")) ?? {};
 
+  // Build out the world tree so newly generated data persists between sessions.
   // Ensure root path
   const scKey = `superCluster${coords.superCluster ?? 0}`;
   const clKey = `cluster${coords.cluster ?? 0}`;
@@ -12,38 +13,38 @@ export function proceduralWorldGeneration(level, coords) {
   const nKey  = `nation${coords.nation ?? 0}`;
   const sKey  = `state${coords.state ?? 0}`;
 
-const sc = ensure(world, scKey, { coords });
+  const sc = ensure(world, scKey, { coords });
 
-const clusters   = ensure(sc, "clusters", {});
-const cl         = ensure(clusters, clKey, { coords });
+  const clusters   = ensure(sc, "clusters", {});
+  const cl         = ensure(clusters, clKey, { coords });
 
-const galaxies   = ensure(cl, "galaxies", {});
-const g          = ensure(galaxies, gKey, { coords });
+  const galaxies   = ensure(cl, "galaxies", {});
+  const g          = ensure(galaxies, gKey, { coords });
 
-const planets    = ensure(g, "planets", {});
-const p          = ensure(planets, pKey, { coords });
+  const planets    = ensure(g, "planets", {});
+  const p          = ensure(planets, pKey, { coords });
 
-const continents = ensure(p, "continents", {});
-const c          = ensure(continents, cKey, { coords });
+  const continents = ensure(p, "continents", {});
+  const c          = ensure(continents, cKey, { coords });
 
-const nations    = ensure(c, "nations", {});
-const n          = ensure(nations, nKey, { coords });
+  const nations    = ensure(c, "nations", {});
+  const n          = ensure(nations, nKey, { coords });
 
-const states     = ensure(n, "states", {});
-const s          = ensure(states, sKey, { coords });
+  const states     = ensure(n, "states", {});
+  const s          = ensure(states, sKey, { coords });
 
 
   switch (level) {
-    case "superCluster": generateClusters(sc, coords); break;
-    case "cluster":   generateGalaxies(cl, coords); break;
-    case "galaxy":    generatePlanets(g, coords); break;
-    case "planet":    generateContinents(p, coords); break;
-    case "continent": generateNations(c, coords); break;
-    case "nation":    generateStates(n, coords); break;
-    case "state":     generateCities(s, coords); break;
+    case "superCluster": generateClusters(world, sc, coords); break;
+    case "cluster":      generateGalaxies(world, cl, coords); break;
+    case "galaxy":       generatePlanets(world, g, coords); break;
+    case "planet":       generateContinents(world, p, coords); break;
+    case "continent":    generateNations(world, c, coords); break;
+    case "nation":       generateStates(world, n, coords); break;
+    case "state":        generateCities(world, s, coords); break;
   }
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -166,6 +167,9 @@ function generateClusters(world, superCluster, coords) {
     };
   }
 
+  // Save immediately so a reload won't re-generate clusters.
+  saveWorld(world);
+
   // second pass to render
   generateClusters(world, superCluster, coords);
 }
@@ -231,6 +235,8 @@ function generateGalaxies(world, cluster, coords) {
       coords: { ...coords, galaxy: i }
     };
   }
+
+  saveWorld(world);
 
   // second pass to render
   generateGalaxies(world, cluster, coords);
@@ -299,6 +305,8 @@ function generatePlanets(world, galaxy, coords) {
     };
   }
 
+  saveWorld(world);
+
   // second pass to render
   generatePlanets(world, galaxy, coords);
 }
@@ -366,6 +374,8 @@ function generateContinents(world,planet, coords) {
       coords: { ...coords, continent: i }
     };
   }
+
+  saveWorld(world);
   // second pass to render
   generateContinents(world, planet, coords);
 }
@@ -435,6 +445,7 @@ function generateNations(world, continent, coords) {
     };
   }
 
+  saveWorld(world);
   // second pass to render
   generateNations(world, continent, coords);
 }
@@ -505,6 +516,7 @@ function generateStates(world, nation, coords) {
     };
   }
 
+  saveWorld(world);
 
   // second pass to render
   generateStates(world, nation, coords);
@@ -579,7 +591,9 @@ function generateCities(world, state, coords) {
   state.cities["city0"] = {
     name: "State Capital",
     isStateCapital: true,
-    coords: { ...coords, city: 0 }
+    coords: { ...coords, city: 0 },
+    // Placeholder for future city-specific metadata (population, traits, etc.)
+    details: {}
   };
 
   // Other cities
@@ -587,10 +601,13 @@ function generateCities(world, state, coords) {
     state.cities[`city${i}`] = {
       name: `City ${i}`,
       isStateCapital: false,
-      coords: { ...coords, city: i }
+      coords: { ...coords, city: i },
+      // Placeholder for future city-specific metadata (population, traits, etc.)
+      details: {}
     };
   }
 
+  saveWorld(world);
 
   // second pass to render
   generateCities(world, state, coords);
@@ -615,7 +632,7 @@ function addSuperCluster() {
     clustersGenerated: false
   };
 
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
   showSuperClusters(world); // re-render THIS view
 }
 
@@ -629,7 +646,7 @@ function ensureInitialSuperCluster(world) {
       clustersGenerated: false
     };
 
-    localStorage.setItem("world", JSON.stringify(world));
+    saveWorld(world);
   }
 }
 
@@ -773,7 +790,7 @@ export function navigateTo(level, coords = {}, direction = "render") {
   }
 
   // 5️⃣ SAVE EXACTLY ONCE
-  localStorage.setItem("world", JSON.stringify(world));
+  saveWorld(world);
 }
 
 
@@ -837,9 +854,6 @@ export function initWorld() {
 function saveWorld(world) {
   localStorage.setItem("world", JSON.stringify(world));
 }
-
-
-
 
 
 
