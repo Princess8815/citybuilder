@@ -243,8 +243,10 @@ submitBtn.onclick = () => {
   };
 
   // if you made a health input, give it data-wallhealth="true" or similar
-  const wallHealthInput = defenderForm.querySelector("input[data-wallhealth]");
+  const wallHealthInput = defenderForm.querySelector("input[data-wall-health]");
+
   wall.health = wallHealthInput ? readNum(wallHealthInput, 0) : 0;
+  console.log("wall health input", wallHealthInput)
 
   // your buildWallSection uses data-wall=key
   defenderForm.querySelectorAll("input[data-wall]").forEach(input => {
@@ -256,7 +258,7 @@ submitBtn.onclick = () => {
     if (key === "abatis") wall.abatis.quantity = qty;
     if (key === "boulders") wall.boulders.quantity = qty;
   });
-
+  console.log("wall", wall)
   // ---------- run sim ----------
   const result = armyCalculations(attacker, deffender, wall, 0, {}, {}, aTech, dTech);
 
@@ -334,6 +336,7 @@ for (let i = 0; i < 1; i++) {
   const aTech = randomTech();
   const dTech = randomTech();
   const wall = randomWall();
+  console.log(wall)
 
   const result = armyCalculations(
     attacker,

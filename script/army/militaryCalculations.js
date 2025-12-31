@@ -250,7 +250,6 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
 
 
     battlefield.forEach(unit => {
-        console.log(unit)
         if (unit.dead) return
         if (unit.side === "deffender"){
             logging.def1 = unit
