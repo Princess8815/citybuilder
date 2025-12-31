@@ -33,3 +33,83 @@ body {
   margin-bottom: 8px;
   text-align: left;
 }
+
+.simulator-forms {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start; /* IMPORTANT */
+}
+
+.simulator-form {
+  flex: 1;                 /* equal width */
+  min-width: 0;            /* prevents overflow bugs */
+  border: 1px solid #444;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+
+#buildBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#builderStatus {
+  font-weight: bold;
+  padding: 6px 10px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+#buildTimers {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+
+#buildTimers > div {
+  padding: 6px 10px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #eee;
+  font-size: 14px;
+}
+
+#researchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#researchStatus {
+  font-weight: bold;
+  padding: 6px 10px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+#researchTimers {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+
+#researchTimers > div {
+  padding: 6px 10px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #eee;
+  font-size: 14px;
+}
+
+
+
