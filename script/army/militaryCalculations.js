@@ -432,6 +432,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     deffenderSide = deffenderSide.filter(u => !u.dead); //wall will nort be filtered out if it does not have wall.dead = true if wall health is above 0 its not true
     const attackerSurvivors = {}
     const deffenderSurvivors = {}
+    console.log(defWall.wallHealth)
     let wallReturn = {
                 health: defWall.wallHealth,
                 defense: defWall.defense,
