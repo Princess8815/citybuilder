@@ -1,7 +1,7 @@
 import { troops } from "./militaryIndex.js"
 import { walls } from "./wall.js";
 //attacker and deffender {troopkey{quantity, line, troopobj}}
-export function armyCalculations(attacker, deffender, wall, round = 0, attackerCasualtyCarried, deffenderCasualtyCarried, aTech = {}, dTech = {}) {
+export function armyCalculations(attacker, deffender, wall, round = 0, attackerCasualtyCarried, deffenderCasualtyCarried, aTech = {}, dTech = {}, logHistory = []) {
     let logging = {
         first: {attacker: attacker, deffender: deffender, wall: wall, round: round, attackerCasualtyCarried: attackerCasualtyCarried, deffenderCasualtyCarried: deffenderCasualtyCarried, aTech: aTech, dTech: dTech}
     }
@@ -26,6 +26,21 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
         defWall.dead = true
     }
     logging.second = defWall
+
+    const roundLog = {
+        round,
+        wallStart: {
+            health: defWall.wallHealth,
+            defense: defWall.defense,
+            towers: defWall.towers.quantity,
+            traps: defWall.traps.quantity,
+            abatis: defWall.abatis.quantity,
+            boulders: defWall.boulders.quantity
+        },
+        attackerStart: {},
+        defenderStart: {},
+        events: []
+    }
 
     Object.entries(troops).forEach(([groupKey, group]) => {
         if (!group || typeof group !== "object") return;
@@ -178,11 +193,17 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     attackerSide.push(
         ...Object.values(attackerTroops)
     )
+    Object.values(attackerTroops).forEach(unit => {
+        roundLog.attackerStart[unit.name] = { quantity: unit.quantity, line: unit.line }
+    })
 
     deffenderSide.push(
         ...Object.values(deffenderTroops),
         defWall
     )
+    Object.values(deffenderTroops).forEach(unit => {
+        roundLog.defenderStart[unit.name] = { quantity: unit.quantity, line: unit.line }
+    })
 
     attackerSide.sort((a, b) => a.line - b.line)
 
@@ -197,6 +218,13 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
         const def = Number(unit.defense);
         if (Number.isFinite(def) && def > 0) {
         unit.totalHealth -= BaseArcherTowerAttack / def;
+        roundLog.events.push({
+            type: "archerTowers",
+            target: unit.name,
+            attack: BaseArcherTowerAttack,
+            damage: BaseArcherTowerAttack / def,
+            remainingHealth: unit.totalHealth
+        })
         }
     }
 
@@ -238,11 +266,11 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
                 if (target.dead) continue
                 logging.def3 = {unit: unit, target: target}
                 if (targetPriority && targetPriority !== target.name) continue //ensures troop is allowed to attack
-                const distance = Math.abs(unit.line - target.line)
-                if (unit.range >= distance){
-                    const baseAttack = unit.totalAttack / target.defense
-                    target.totalHealth = target.totalHealth - baseAttack
-                    const newQuantity = Math.max(Math.ceil(target.totalHealth / target.health), 0)
+                    const distance = Math.abs(unit.line - target.line)
+                    if (unit.range >= distance){
+                        const baseAttack = unit.totalAttack / target.defense
+                        target.totalHealth = target.totalHealth - baseAttack
+                        const newQuantity = Math.max(Math.ceil(target.totalHealth / target.health), 0)
                     const casualties = target.quantity - newQuantity
                     target.quantity = newQuantity
                     logging.def4 = {unit: unit, target: target}
@@ -378,6 +406,17 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
                     const effectiveWallDefense = wallDefense > 0 ? (unit.group === "siege" ? wallDefense * 0.6 : wallDefense) : 0
                     const effectiveDamage = effectiveWallDefense > 0 ? baseAttack / effectiveWallDefense : baseAttack
 
+                    roundLog.events.push({
+                        type: "wallAttack",
+                        attacker: unit.name,
+                        group: unit.group,
+                        baseAttack,
+                        wallDefense: defWall.defense,
+                        effectiveWallDefense,
+                        effectiveDamage,
+                        preHealth: defWall.wallHealth
+                    })
+
                     defWall.wallHealth -= effectiveDamage
                     if (defWall.towers.quantity > 0) {
                         const archerAmountDestroyed = Math.round(effectiveDamage / defWall.towers.towers.health)
@@ -394,6 +433,13 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
 
 
                     const baseAttack = unit.totalAttack / target.defense
+                    roundLog.events.push({
+                        type: "attack",
+                        attacker: unit.name,
+                        target: target.name,
+                        baseAttack,
+                        targetDefense: target.defense
+                    })
                     target.totalHealth = target.totalHealth - baseAttack
                     const newQuantity = Math.max(Math.ceil(target.totalHealth / target.health), 0)
                     const casualties = target.quantity - newQuantity
@@ -470,6 +516,24 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
             troop: unit.troopObj
         }
     })
+    roundLog.wallEnd = {
+        health: defWall.wallHealth,
+        defense: defWall.defense,
+        towers: defWall.towers.quantity,
+        traps: defWall.traps.quantity,
+        abatis: defWall.abatis.quantity,
+        boulders: defWall.boulders.quantity
+    }
+    roundLog.attackerEnd = {}
+    roundLog.defenderEnd = {}
+    attackerSide.forEach(unit => {
+        roundLog.attackerEnd[unit.name] = { quantity: unit.quantity, line: unit.line }
+    })
+    deffenderSide.forEach(unit => {
+        if (unit.name === "wall") return
+        roundLog.defenderEnd[unit.name] = { quantity: unit.quantity, line: unit.line }
+    })
+    logHistory.push(roundLog)
     console.log(logging)
     if (attackerSide.length <= 0) { 
         return {
@@ -478,7 +542,8 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
             attackerCasualties: attackerCasualties,
             deffenderCasualties: deffenderCasualties,
             wallReturn: wallReturn, //is comming back as {}
-            round: round
+            round: round,
+            logHistory: logHistory
         }
     }
 
@@ -488,7 +553,8 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
             attackerSurvivors: attackerSurvivors,
             attackerCasualties: attackerCasualties,
             deffenderCasualties: deffenderCasualties,
-            round: round
+            round: round,
+            logHistory: logHistory
         }
     }
 
@@ -502,6 +568,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     attackerCasualties,
     deffenderCasualties,
     aTech,
-    dTech
+    dTech,
+    logHistory
     )
 }
