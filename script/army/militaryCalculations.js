@@ -14,6 +14,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
         name: "wall",
         //made a consistent typo called the obj towers to lazy to fix
         wallHealth: wall?.health ?? 0,
+        defense: wall?.defense ?? 0,
         towers: wall?.towers ?? {quantity: 0, towers: walls.archerTowers}, //fires start of round at infantry {quntity, wallfort key}
         traps: wall?.traps ?? {quantity: 0, traps: walls.traps}, //fires any time infantry move
         abatis: wall?.abatis ?? {quantity: 0, abatis: walls.abatis}, //will harm cavalry close to wall
@@ -373,9 +374,13 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
                     }
 
                     const baseAttack = unit.totalAttack * (1 + siegeBonus)
-                    defWall.wallHealth -= baseAttack
+                    const wallDefense = defWall.defense ?? 0
+                    const effectiveWallDefense = wallDefense > 0 ? (unit.group === "siege" ? wallDefense * 0.6 : wallDefense) : 0
+                    const effectiveDamage = effectiveWallDefense > 0 ? baseAttack / effectiveWallDefense : baseAttack
+
+                    defWall.wallHealth -= effectiveDamage
                     if (defWall.towers.quantity > 0) {
-                        const archerAmountDestroyed = Math.round(baseAttack / defWall.towers.towers.health)
+                        const archerAmountDestroyed = Math.round(effectiveDamage / defWall.towers.towers.health)
                         defWall.towers.quantity = Math.max(defWall.towers.quantity - archerAmountDestroyed, 0)
 
                     }
@@ -429,6 +434,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     const deffenderSurvivors = {}
     let wallReturn = {
                 health: defWall.wallHealth,
+                defense: defWall.defense,
                 towers: defWall.towers,
                 abatis: defWall.abatis,
                 traps: defWall.traps,
@@ -450,6 +456,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
         if (unit.name === "wall") {
             wallReturn = { //not being set right
                 health: defWall.wallHealth,
+                defense: defWall.defense,
                 towers: defWall.towers,
                 abatis: defWall.abatis,
                 traps: defWall.traps,
