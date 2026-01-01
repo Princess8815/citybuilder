@@ -16,7 +16,7 @@ export const troops = {
         //pony go gallop barrel into infantry or abatis it cant tell dif til its dead
         ...ancientToMedevilCalvalry
     },
-    seige: {
+    siege: {
         //boom boom wall go down
         ...ancientToMedevilSiege
     }
