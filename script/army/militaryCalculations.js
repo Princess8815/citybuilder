@@ -210,14 +210,23 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     deffenderSide.sort((a, b) => b.line - a.line)
 
     const BaseArcherTowerAttack = defWall.towers.towers.attack * defWall.towers.quantity;
+    let remainingBase = BaseArcherTowerAttack
 
     for (const unit of attackerSide) {
+        if (defWall.wallHealth <= 0) return
     if (unit.group === "siege") continue;
 
-    if (BaseArcherTowerAttack > 0) {
+    if (remainingBase > 0) {
         const def = Number(unit.defense);
         if (Number.isFinite(def) && def > 0) {
-        unit.totalHealth -= BaseArcherTowerAttack / def;
+        unit.totalHealth -= remainingBase / def;
+        if (unit.totalHealth < 0){ //note if total health is 0 we dont need this to run hence why no =
+            const overkill = Math.abs(unit.totalHealth)
+            remainingBase -= overkill
+        }
+        else {
+            remainingBase = 0
+        }
         roundLog.events.push({
             type: "archerTowers",
             target: unit.name,
@@ -239,13 +248,17 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
 
     if (unit.quantity <= 0) {
         unit.dead = true;
-        break;
+
+    }
+    else {
+        unit.totalAttack = unit.quantity * unit.attack;
+        unit.totalHealth = unit.quantity * unit.health;
     }
 
-    unit.totalAttack = unit.quantity * unit.attack;
-    unit.totalHealth = unit.quantity * unit.health;
-    break;
+    if (remainingBase <= 0){
+        break
     }
+}
 
 
 
@@ -324,7 +337,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
             if (unit.range >= distance){
                 if (target.name === "wall") {
                     logging.attk4= {unit: unit, target: target, targetName: target.name}
-                    if (unit.dead) return
+                    if (defWall.dead) return
                     const key = unit.name
                     let siegeBonus = 0
                     switch (unit.group) {
