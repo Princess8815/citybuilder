@@ -115,7 +115,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
 
                     range: troop.range,
                     moveSpeed: troop.move,
-                    speed: troop.speed, //determines move order
+                    speed: troop.speed * 1.1, //determines move order
 
                     totalAttack: troop.attack * quantity * (1 + (attackTechAttacker / 100)),
                     totalHealth: healthVal * quantity * (1 + (healthTechAttacker / 100)),
@@ -213,7 +213,7 @@ export function armyCalculations(attacker, deffender, wall, round = 0, attackerC
     let remainingBase = BaseArcherTowerAttack
 
     for (const unit of attackerSide) {
-        if (defWall.wallHealth <= 0) return
+        if (defWall.wallHealth <= 0) break
     if (unit.group === "siege") continue;
 
     if (remainingBase > 0) {
