@@ -23,9 +23,9 @@ function normalizeTech(raw = {}) {
     siege: raw.siege ?? 0,
 
     // match YOUR calc's misspellings
-    defence: raw.defense ?? 0,
-    cavalryDefence: raw.cavalryDefense ?? 0,
-    siegeDefence: raw.siegeDefense ?? 0,
+    defense: raw.defense ?? 0,
+    cavalryDefense: raw.cavalryDefense ?? 0,
+    siegeDefense: raw.siegeDefense ?? 0,
 
     footHealth: raw.footHealth ?? 0,
     horseHealth: raw.horseHealth ?? 0,
